@@ -2,8 +2,8 @@
 
 <html>
     <head>
-        {% if refresh %}
-        <meta http-equiv="refresh" content="5">
+        {% if seconds_per_refresh %}
+        <meta http-equiv="refresh" content="{{ seconds_per_refresh }}">
         {% endif %}
         <title>{{ title }}</title>
     </head>

