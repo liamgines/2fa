@@ -18,8 +18,7 @@
     </p>
     <p>{{ password_form.submit() }}</p>
     {% elif authentication_code %}
-    <h2>[ {{ authentication_code }} ]</h2><!-- <br><hr> -->
-    <!-- <p>Not Working? <a href="">Try Refreshing Code</a></p> -->
+    <h2>[ {{ authentication_code }} ]</h2>
     {% endif %}
 </form>
 {% endblock %}
