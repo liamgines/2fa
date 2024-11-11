@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        {% if refresh %}
+        <meta http-equiv="refresh" content="5">
+        {% endif %}
+        <title>{{ title }}</title>
+    </head>
+    <body>
+        <h1>{{ header }}</h1>
+        {% block content %}{% endblock %}
+    </body>
+</html>

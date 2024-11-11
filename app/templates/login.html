@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form action="" method="POST" novalidate>
+    {% if id_form %}
+    {{ id_form.hidden_tag() }}
+    <p>
+    {{ id_form.identifier.label }}<br>
+    {{ id_form.identifier(size=32) }}
+    </p>
+    <p>{{ id_form.submit() }}</p>
+
+    {% elif password_form %}
+    {{ password_form.hidden_tag() }}
+    <p>
+    {{ password_form.password.label }}<br>
+    {{ password_form.password(size=32) }}
+    </p>
+    <p>{{ password_form.submit() }}</p>
+    {% elif authentication_code %}
+    <h2>[ {{ authentication_code }} ]</h2><!-- <br><hr> -->
+    <!-- <p>Not Working? <a href="">Try Refreshing Code</a></p> -->
+    {% endif %}
+</form>
+{% endblock %}
