@@ -4,6 +4,9 @@ class Session:
     count = 0
     drivers = []
 
+    def __contains__(self, key):
+        return key in session
+
     @property
     def id(self):
         return session["id"]
@@ -14,7 +17,7 @@ class Session:
 
     @property
     def driver(self):
-        return self.drivers[session["id"]]
+        return self.drivers[self.id]
 
     @property
     def name(self):

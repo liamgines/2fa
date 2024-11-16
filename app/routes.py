@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for, session
+from flask import render_template, redirect, url_for
 from app import app
 from app.session import Session
 from app.forms import NameForm, PasswordForm
@@ -77,14 +77,14 @@ def enter_password(password):
 
 @app.route("/")
 def index():
-    if "name" in session and "password" in session and Session.password_changed:
+    if "name" in Session and "password" in Session and Session.password_changed:
         return IndexPage()
 
     return redirect(url_for("login"))
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if "id" not in session:
+    if "id" not in Session:
         Session.id = Session.count
         Session.count += 1
         Session.password_changed = False
@@ -95,24 +95,24 @@ def login():
     name_form = NameForm()
     password_form = PasswordForm()
 
-    if "name" in session and "password" in session and Session.password_changed:
+    if "name" in Session and "password" in Session and Session.password_changed:
         return redirect(url_for("index"))
 
-    elif "name" not in session:
+    elif "name" not in Session:
         if name_form.validate_on_submit() and enter_name(name_form.name.data):
             Session.name = name_form.name.data
             return PasswordPage(password_form)
     
         return NamePage(name_form)
 
-    elif "password" not in session:
+    elif "password" not in Session:
         if password_form.validate_on_submit() and enter_password(password_form.password.data):
             Session.password = password_form.password.data
             return redirect(url_for("login"))
 
         return PasswordPage(password_form)
 
-    elif "password" in session:
+    elif "password" in Session:
         authentication_code = get_authentication_code()
         if authentication_code:
             return AuthenticationPage(authentication_code)
