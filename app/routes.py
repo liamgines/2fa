@@ -117,6 +117,9 @@ def login():
         if authentication_code:
             return AuthenticationPage(authentication_code)
 
+        elif Session.driver.title != "My Apps":
+            return redirect(url_for("login"))
+
         elif not Session.password_changed:
             change_password()
 
