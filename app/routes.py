@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for
+from flask import render_template, redirect, url_for, flash
 from app import app
 from app.session import Session
 from app.forms import NameForm, PasswordForm
@@ -60,6 +60,8 @@ def enter_field(field_name, value, error_id, clear):
 
     try:
         error = WebDriverWait(Session.driver, 5).until(EC.presence_of_element_located((By.ID, error_id)))
+
+        flash(error.text)
 
         if clear:
             field.clear()

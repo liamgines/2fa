@@ -6,18 +6,17 @@
     {{ form.hidden_tag() }}
     <p>
         {% if form.name %}
-        {{ form.name.label }}<br>
-        {{ form.name(size=32) }}
+        {{ form.name(placeholder="Email, if you dare", size=32) }}
 
         {% elif form.password %}
-        {{ form.password.label }}<br>
-        {{ form.password(size=32) }}
+        {{ form.password(placeholder="Enter password for a change", size=32) }}
         {% endif %}
     </p>
     <p>{{ form.submit() }}</p>
 
     {% elif authentication_code %}
-    <h2>Code: [ {{ authentication_code }} ]</h2>
+    <p>Open your Authenticator app, and enter the number shown to sign in.</p>
+    <h1 class="code">{{ authentication_code }}</h1>
     {% endif %}
 </form>
 {% endblock %}

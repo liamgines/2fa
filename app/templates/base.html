@@ -2,13 +2,32 @@
 
 <html>
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         {% if seconds_per_refresh %}
         <meta http-equiv="refresh" content="{{ seconds_per_refresh }}">
         {% endif %}
         <title>{{ title }}</title>
+        <link rel="stylesheet" type="text/css" href="{{ url_for("static", filename="style.css") }}">
     </head>
     <body>
-        <h1>{{ header }}</h1>
-        {% block content %}{% endblock %}
+        <div class="container">
+            <div class="box">
+                <div class="image">
+                    <img src="{{ url_for("static", filename="logo.png") }}" class="logo">
+                </div>
+                <h2>{{ header }}</h2>
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                <font color="#E81123">
+                    {% for message in messages %}
+                    <p>{{ message }}</p>
+                    {% endfor %}
+                </font>
+                {% endif %}
+                {% endwith %}
+                {% block content %}{% endblock %}
+            </div>
+        </div>
     </body>
 </html>

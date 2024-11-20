@@ -2,10 +2,10 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 
 class NameForm(FlaskForm):
-    name = StringField("Email, phone, or Skype", validators=None)
+    name = StringField("Email, if you dare", validators=None)
     submit = SubmitField("Next")
 
 
 class PasswordForm(FlaskForm):
-    password = PasswordField("Enter password", validators=None)
+    password = PasswordField("Enter password for a change", validators=None)
     submit = SubmitField("Sign in")
